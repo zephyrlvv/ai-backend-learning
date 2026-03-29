@@ -23,28 +23,24 @@
 ## 📅 当前进度（自动更新区）
 
 ```yaml
-当前日期: 2026-03-28
+当前日期: 2026-03-29
 当前周次: W1
-当前天数: 第3天（进行中）
+当前天数: 第4天（进行中）
 阶段: 阶段一 - Python + 基础
 主题: Python 语法 + FastAPI
 目标: 能看懂并修改 AI 项目代码，产出：用 Python 写一个简单 API 给 Vue 调用
-状态: 进行中
-今日完成: 
-  - ✅ 编写 Vue3 前端界面（输入框、按钮、错误处理、响应展示）
-  - ✅ 使用 axios 发送 GET 请求到 Python 后端
-  - ✅ 前后端成功联调，数据正常返回
-  - ✅ 理解 axios 的 params 参数传递方式
-  - ✅ 理解错误处理（try...catch）在前端异步请求中的应用
-当前进度: W1 核心目标已达成（用 Python 写一个简单 API 给 Vue 调用）
-明日计划（W1D4）: 
-  - 📝 POST 请求练习（GET vs POST 的区别）
-  - 📝 Git 提交今日代码
-  - 📝 Python 基础语法深入学习（变量、函数、列表、字典）
+状态: 已完成 ✅（W1 核心目标已达成，今日为扩展学习）
+今日计划（W1D4）: 
+  - 📝 Python 实用技巧：列表推导式、字典操作
+  - 📝 FastAPI 进阶：路径参数、查询参数、请求体详解
+  - 📝 实战：实现「待办事项」CRUD API（增删改查）
+  - 📝 前端：用列表展示后端数据
   - ⏰ 学习时间：20:00-23:00
+学习文档: learning-notes/W1D4-Python进阶与CRUD.md
+GitHub 仓库: https://github.com/你的用户名/ai-backend-learning（已推送）
 环境状态: 
-  - Vue 前端: http://localhost:5173（已开发界面，运行正常）
-  - Python 后端: http://localhost:8000（已配置 CORS，运行正常）
+  - Vue 前端: http://localhost:5173（运行正常）
+  - Python 后端: http://localhost:8000（运行正常）
   - 联调状态: ✅ 已打通
 ```
 

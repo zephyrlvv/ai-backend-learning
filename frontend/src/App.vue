@@ -1,147 +1,140 @@
 <template>
-    <div class="chat-box">
-        <h1>🤖 AI 聊天助手</h1>
-        <p>Vue3 前端 ↔ Python 后端 联调 Demo</p>
+    <div class="todo-app">
+        <h1>📝 待办事项</h1>
 
-        <!-- 输入区域 -->
-        <div class="input-area">
-            <input v-model="message" placeholder="输入消息..." @keyup.enter="sendMessage" />
-            <button @click="sendMessage" :disabled="loading">
-                {{ loading ? '发送中...' : '发送' }}
-            </button>
-        </div>
-        <!-- 新增：POST 请求测试 -->
-        <div class="post-section" style="margin-top: 30px; border-top: 2px dashed #ccc; padding-top: 20px;">
-            <h3>📝 POST 请求测试</h3>
-            <input v-model="userId" placeholder="输入用户ID（可选）" />
-            <button @click="sendPost" :disabled="loading">
-                POST 方式发送
-            </button>
+        <!-- 添加新待办 -->
+        <div class="add-todo">
+            <input v-model="newTitle" placeholder="输入新待办..." @keyup.enter="addTodo" />
+            <button @click="addTodo">添加</button>
         </div>
 
-        <!-- 错误提示 -->
-        <div v-if="error" class="error">
-            ❌ {{ error }}
-        </div>
+        <!-- 加载状态 -->
+        <div v-if="loading" class="loading">加载中...</div>
 
-        <!-- 后端响应 -->
-        <div v-if="response" class="response">
-            <h3>后端返回：</h3>
-            <pre>{{ JSON.stringify(response, null, 2) }}</pre>
+        <!-- 待办列表 -->
+        <ul class="todo-list" v-else>
+            <li v-for="todo in todos" :key="todo.id" :class="{ completed: todo.completed }">
+                <span @click="toggleComplete(todo)">
+                    {{ todo.completed ? '✅' : '⭕' }} {{ todo.title }}
+                </span>
+                <button @click="deleteTodo(todo.id)" class="delete">删除</button>
+            </li>
+        </ul>
+
+        <!-- 统计 -->
+        <div class="stats">
+            总计: {{ todos.length }} |
+            已完成: {{ completedCount }} |
+            待完成: {{ pendingCount }}
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 
-// 响应式数据（类似 Python 的变量，但界面会自动更新）
-const message = ref('')      // 输入框内容
-const response = ref(null)   // 后端返回的数据
-const loading = ref(false)   // 加载状态
-const error = ref('')        // 错误信息
-const userId = ref('')
+// 定义 Todo 类型（类似 TypeScript interface）
+interface Todo {
+    id: number
+    title: string
+    completed: boolean
+}
 
+// 响应式数据
+const todos = ref<Todo[]>([])
+const newTitle = ref('')
+const loading = ref(false)
 
-// 发送消息函数
-const sendMessage = async () => {
-    // 校验：空消息不发
-    if (!message.value.trim()) {
-        error.value = '请输入消息'
-        return
-    }
+const API_URL = 'http://localhost:8000/todos'
 
-    // 重置状态
+// 计算属性（类似 Vue2 的 computed）
+const completedCount = computed(() => todos.value.filter(t => t.completed).length)
+const pendingCount = computed(() => todos.value.filter(t => !t.completed).length)
+
+// 获取所有待办（页面加载时调用）
+const fetchTodos = async () => {
     loading.value = true
-    error.value = ''
-    response.value = null
-
     try {
-        // 调用 Python 后端 API
-        const res = await axios.get('http://localhost:8000/chat', {
-            params: {
-                msg: message.value  // 对应 Python 函数的 msg 参数
-            }
-        })
-
-        // 保存响应数据
-        response.value = res.data
-        console.log('后端返回：', res.data)
-
-    } catch (err: any) {
-        console.error('请求失败：', err)
-        error.value = err.response?.data?.detail || '请求失败，请检查后端是否启动'
+        const res = await axios.get(API_URL)
+        todos.value = res.data
+    } catch (err) {
+        alert('获取数据失败')
     } finally {
         loading.value = false
     }
 }
 
-// 添加 POST 请求函数
-const sendPost = async () => {
-    if (!message.value.trim()) {
-        error.value = '请输入消息'
-        return
-    }
-
-    loading.value = true
-    error.value = ''
-    response.value = null
+// 添加待办
+const addTodo = async () => {
+    if (!newTitle.value.trim()) return
 
     try {
-        // POST 请求：参数放在 data 里，不是 params
-        const res = await axios.post('http://localhost:8000/chat', {
-            msg: message.value,
-            userId: userId.value
+        const res = await axios.post(API_URL, {
+            title: newTitle.value
         })
-
-        response.value = res.data
-
-    } catch (err: any) {
-        error.value = err.response?.data?.detail || '请求失败'
-    } finally {
-        loading.value = false
+        todos.value.push(res.data)  // 添加到列表末尾
+        newTitle.value = ''  // 清空输入框
+    } catch (err) {
+        alert('添加失败')
     }
 }
+
+// 切换完成状态
+const toggleComplete = async (todo: Todo) => {
+    try {
+        await axios.put(`${API_URL}/${todo.id}`, {
+            completed: !todo.completed
+        })
+        todo.completed = !todo.completed  // 本地更新，不用重新请求
+    } catch (err) {
+        alert('更新失败')
+    }
+}
+
+// 删除待办
+const deleteTodo = async (id: number) => {
+    if (!confirm('确定删除吗？')) return
+
+    try {
+        await axios.delete(`${API_URL}/${id}`)
+        todos.value = todos.value.filter(t => t.id !== id)  // 本地过滤掉删除的
+    } catch (err) {
+        alert('删除失败')
+    }
+}
+
+// 页面加载时自动获取数据（类似 Vue2 的 mounted）
+onMounted(() => {
+    fetchTodos()
+})
 </script>
 
 <style scoped>
-.chat-box {
+.todo-app {
     max-width: 600px;
     margin: 50px auto;
     padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 h1 {
+    text-align: center;
     color: #333;
-    margin-bottom: 10px;
 }
 
-p {
-    color: #666;
-    margin-bottom: 20px;
-}
-
-.input-area {
+.add-todo {
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
 }
 
-input {
+.add-todo input {
     flex: 1;
     padding: 10px;
-    border: 1px solid #ccc;
+    border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
-}
-
-input:focus {
-    outline: none;
-    border-color: #007bff;
 }
 
 button {
@@ -151,44 +144,53 @@ button {
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
 }
 
-button:hover:not(:disabled) {
+button:hover {
     background: #0056b3;
 }
 
-button:disabled {
-    background: #ccc;
-    cursor: not-allowed;
+.todo-list {
+    list-style: none;
+    padding: 0;
 }
 
-.error {
-    color: #dc3545;
-    padding: 10px;
-    background: #f8d7da;
-    border-radius: 4px;
-    margin-bottom: 20px;
+.todo-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
 }
 
-.response {
-    background: #f8f9fa;
+.todo-list li:hover {
+    background: #f5f5f5;
+}
+
+.todo-list li.completed span {
+    text-decoration: line-through;
+    color: #999;
+}
+
+.delete {
+    background: #dc3545;
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+}
+
+.stats {
+    margin-top: 20px;
     padding: 15px;
+    background: #f8f9fa;
     border-radius: 4px;
-    border-left: 4px solid #28a745;
-}
-
-.response h3 {
-    margin-top: 0;
-    color: #28a745;
-}
-
-pre {
-    color: black;
-    background: white;
-    padding: 10px;
-    border-radius: 4px;
-    overflow-x: auto;
-    margin: 0;
+    text-align: center;
+    color: #666;
 }
 </style>
