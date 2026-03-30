@@ -24,19 +24,30 @@
 
 ```yaml
 当前日期: 2026-03-29
-当前周次: W1
-当前天数: 第4天（进行中）
-阶段: 阶段一 - Python + 基础
-主题: Python 语法 + FastAPI
-目标: 能看懂并修改 AI 项目代码，产出：用 Python 写一个简单 API 给 Vue 调用
-状态: 已完成 ✅（W1 核心目标已达成，今日为扩展学习）
-今日计划（W1D4）: 
-  - 📝 Python 实用技巧：列表推导式、字典操作
-  - 📝 FastAPI 进阶：路径参数、查询参数、请求体详解
-  - 📝 实战：实现「待办事项」CRUD API（增删改查）
-  - 📝 前端：用列表展示后端数据
+当前周次: W1-W2
+当前天数: 第4天（结束）/ W2开始
+阶段: 阶段一已完成，进入阶段二
+主题: FastAPI + 流式输出（Streaming）
+目标: 后端服务框架，流式输出
+状态: W1 ✅ 已完成（前后端联调 + CRUD）
+W1 完成内容: 
+  - ✅ Todo List CRUD 完整实现
+  - ✅ 全部接口联调成功
+  - ✅ Git 提交代码
+W2D1 完成（今天）: 
+  - ✅ 理解 Python 生成器 yield（类比 JS generator）
+  - ✅ FastAPI StreamingResponse 实现流式输出
+  - ✅ 配置 CORS expose_headers 支持 SSE
+  - ✅ Vue3 EventSource 接收流式数据
+  - ✅ 实现带参数的流式对话（ChatGPT 打字机效果）
+W2D2 计划（明天）: 
+  - 📝 接入真实 AI API（如 OpenAI/通义千问）
+  - 📝 实现真正的 AI 流式对话
+  - 📝 添加聊天记录（Memory）功能
   - ⏰ 学习时间：20:00-23:00
-学习文档: learning-notes/W1D4-Python进阶与CRUD.md
+学习文档: 
+  - W2D1: learning-notes/W2D1-流式输出.md
+  - FAQ: learning-notes/FAQ-踩坑记录.md（环境问题、422错误、Python陷阱等）
 GitHub 仓库: https://github.com/你的用户名/ai-backend-learning（已推送）
 环境状态: 
   - Vue 前端: http://localhost:5173（运行正常）

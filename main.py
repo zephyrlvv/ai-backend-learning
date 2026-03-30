@@ -1,7 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Any, List, Optional
+
+import time, random
+from openai import OpenAI
+from typing import Iterator
 
 app = FastAPI()
 
@@ -12,6 +17,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
@@ -97,3 +103,63 @@ def delete_todo(todo_id: int):
             deleted = todos_db.pop(index)
             return {"message": "删除成功", "todo": deleted}
     raise HTTPException(status_code=404, detail="待办事项不存在")
+
+
+@app.get("/stream")
+def stream():
+    def generate():
+        text = "这是流式输出效果"
+        for char in text:
+            yield f"data:{char}\n\n"  # SSE 格式要求
+            time.sleep(0.05)  # 每个字延迟 50ms
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@app.get("/chat/stream")
+def chat_stream(msg: str):
+    """模拟ai回复"""
+
+    def generate():
+        responses = [
+            f"收到你的消息：{msg}。这是一个很有意思的问题！",
+            f"关于「{msg}」，我的看法是这样的...",
+            f"你提到了{msg}，让我深入思考一下...",
+        ]
+        response = random.choice(responses)
+
+        # 逐字返回
+        for char in response:
+            yield f"data:{char}\n\n"
+            time.sleep(0.03)
+        yield "data:[DONE]\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+# 硅基流动配置
+client = OpenAI(
+    api_key="sk-rykwqcswnxdbhynbbtnlvcovysldjumrgeqrmvcaadexgjao",  # 从硅基流动控制台复制
+    base_url="https://api.siliconflow.cn/v1",  # 硅基流动的接口地址
+)
+
+
+@app.get("/chat/ai")
+def chat_ai(msg: str):
+    def generate() -> Iterator[str]:
+        try:
+            res = client.chat.completions.create(
+                model="Qwen/Qwen3-VL-32B-Instruct",
+                messages=[{"role": "user", "content": msg}],
+                stream=True,
+            )
+            for chunk in res:
+                if chunk.choices[0].delta and chunk.choices[0].delta.content:
+                    text = chunk.choices[0].delta.content
+                    yield f"data:{text}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            yield f"data: [ERROR] {str(e)}\n\n"
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
