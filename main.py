@@ -8,7 +8,10 @@ import time, random
 from openai import OpenAI
 from typing import Iterator
 
+from database import init_db, add_message, get_messages, clear_messages
+
 app = FastAPI()
+init_db()
 
 # 关键：允许 Vue 前端访问
 app.add_middleware(
@@ -145,21 +148,36 @@ client = OpenAI(
 
 
 @app.get("/chat/ai")
-def chat_ai(msg: str):
+def chat_ai(msg: str, session_id: str = "default"):
+    # 保存用户对话记录
+    add_message("user", msg, session_id)
+
     def generate() -> Iterator[str]:
         try:
+            history = get_messages(session_id, limit=20)
+            # print('message---------',history)
             res = client.chat.completions.create(
                 model="Qwen/Qwen3-VL-32B-Instruct",
-                messages=[{"role": "user", "content": msg}],
+                messages=history,
                 stream=True,
+                max_tokens=2048,
             )
+            assistant_reply = ""
             for chunk in res:
                 if chunk.choices[0].delta and chunk.choices[0].delta.content:
                     text = chunk.choices[0].delta.content
+                    assistant_reply += text
                     yield f"data:{text}\n\n"
+                    add_message("assistant", assistant_reply, session_id)
             yield "data: [DONE]\n\n"
         except Exception as e:
             yield f"data: [ERROR] {str(e)}\n\n"
             yield "data: [DONE]\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@app.post("/chat/clear")
+def clear_history(session_id: str = "default"):
+    clear_messages(session_id)
+    return {"message": "对话历史已清空"}
