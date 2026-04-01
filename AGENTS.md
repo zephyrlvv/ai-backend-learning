@@ -34,16 +34,22 @@ W1 完成内容:
   - ✅ Todo List CRUD 完整实现
   - ✅ 全部接口联调成功
   - ✅ Git 提交代码
-W2D1 完成（今天）: 
-  - ✅ 理解 Python 生成器 yield（类比 JS generator）
-  - ✅ FastAPI StreamingResponse 实现流式输出
-  - ✅ 配置 CORS expose_headers 支持 SSE
-  - ✅ Vue3 EventSource 接收流式数据
-  - ✅ 实现带参数的流式对话（ChatGPT 打字机效果）
-W2D2 计划（明天）: 
-  - 📝 接入真实 AI API（如 OpenAI/通义千问）
-  - 📝 实现真正的 AI 流式对话
-  - 📝 添加聊天记录（Memory）功能
+W2D2-D3 完成（今天）: 
+  - ✅ 接入真实 AI API（硅基流动 Qwen3-VL-32B）
+  - ✅ 实现真正的 AI 流式对话
+  - ✅ 添加 Memory 记忆功能（连续对话）
+  - ✅ SQLite 持久化存储（重启后数据不丢失）
+  - ✅ Git 提交 W2 完整代码
+W2 阶段总结: 
+  - 产出：带记忆功能的 AI 聊天机器人（流式输出 + 持久化）
+  - 技术栈：FastAPI StreamingResponse + EventSource + SQLite
+  - 面试点：流式输出原理、SSE vs WebSocket、数据库持久化设计
+W3 计划（明天开始）: 
+  - 📝 LangChain 框架基础
+  - 📝 Prompt 模板管理
+  - 📝 Chain 链式调用
+  - 📝 LangChain Memory 组件（解决 Token 叠加问题）
+  - 📝 产出：基于 LangChain 的专业 ChatBot
   - ⏰ 学习时间：20:00-23:00
 学习文档: 
   - W2D1: learning-notes/W2D1-流式输出.md
