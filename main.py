@@ -4,6 +4,18 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Any, List, Optional
 
+from dotenv import load_dotenv
+import os
+
+# 加载 .env 文件
+load_dotenv()
+# 读取环境变量
+API_KEY = os.getenv("SILICONFLOW_API_KEY")
+BASE_URL = os.getenv("SILICONFLOW_BASE_URL")
+# 如果读取失败，给出提示
+if not API_KEY:
+    raise ValueError("请在 .env 文件里设置 SILICONFLOW_API_KEY")
+
 import time, random
 from openai import OpenAI
 from typing import Iterator
@@ -149,15 +161,15 @@ def chat_stream(msg: str):
 
 # 硅基流动配置
 client = OpenAI(
-    api_key="sk-rykwqcswnxdbhynbbtnlvcovysldjumrgeqrmvcaadexgjao",  # 从硅基流动控制台复制
-    base_url="https://api.siliconflow.cn/v1",  # 硅基流动的接口地址
+    api_key=API_KEY,  # 从硅基流动控制台复制
+    base_url=BASE_URL,  # 硅基流动的接口地址
 )
 
 # ========== LangChain 配置 ==========
 # 初始化 LLM（硅基流动兼容 OpenAI 接口）
 langchain_llm = ChatOpenAI(
-    api_key="sk-rykwqcswnxdbhynbbtnlvcovysldjumrgeqrmvcaadexgjao",
-    base_url="https://api.siliconflow.cn/v1",
+    api_key=API_KEY,
+    base_url=BASE_URL,
     model="Qwen/Qwen3-VL-32B-Instruct",
     temperature=0.7,
 )

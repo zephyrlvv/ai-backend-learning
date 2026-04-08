@@ -3,7 +3,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 llm = ChatOpenAI(
-    api_key="sk-rykwqcswnxdbhynbbtnlvcovysldjumrgeqrmvcaadexgjao",
+    api_key="xxx",
     base_url="https://api.siliconflow.cn/v1",
     model="Qwen/Qwen3-VL-32B-Instruct",
     temperature=0.7,

@@ -4,7 +4,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 
 llm = ChatOpenAI(
-    api_key="sk-rykwqcswnxdbhynbbtnlvcovysldjumrgeqrmvcaadexgjao",
+    api_key="xxx",
     base_url="https://api.siliconflow.cn/v1",
     model="Qwen/Qwen3-VL-32B-Instruct",
 )
