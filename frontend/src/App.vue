@@ -40,6 +40,8 @@
                 {{ isConnecting || isGenerating ? '发送中...' : '发送' }}
             </button>
         </div>
+
+
     </div>
 </template>
 
@@ -78,9 +80,11 @@ const sendMessage = () => {
     scrollToBottom()
 
     // 调用 AI 流式接口
-    const es = new EventSource(`http://localhost:8000/chat/ai?msg=${encodeURIComponent(userMsg)}`)
+    const es = new EventSource(`http://localhost:8000/chat/myai?msg=${encodeURIComponent(userMsg)}`)
 
     es.onmessage = (e) => {
+        console.log({ e });
+
         if (e.data === '[DONE]') {
             es.close()
             messages.value.push({
@@ -128,12 +132,12 @@ const scrollToBottom = () => {
 
 <style scoped>
 .chat-container {
-    max-width: 800px;
+    /* max-width: 800px;
     margin: 0 auto;
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background: #f5f5f5;
+    background: #f5f5f5; */
 }
 
 h1 {

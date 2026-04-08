@@ -10,6 +10,13 @@ from typing import Iterator
 
 from database import init_db, add_message, get_messages, clear_messages
 
+# ========== LangChain 导入 ==========
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_community.chat_message_histories import ChatMessageHistory
+
 app = FastAPI()
 init_db()
 
@@ -146,6 +153,29 @@ client = OpenAI(
     base_url="https://api.siliconflow.cn/v1",  # 硅基流动的接口地址
 )
 
+# ========== LangChain 配置 ==========
+# 初始化 LLM（硅基流动兼容 OpenAI 接口）
+langchain_llm = ChatOpenAI(
+    api_key="sk-rykwqcswnxdbhynbbtnlvcovysldjumrgeqrmvcaadexgjao",
+    base_url="https://api.siliconflow.cn/v1",
+    model="Qwen/Qwen3-VL-32B-Instruct",
+    temperature=0.7,
+)
+
+# 定义 Prompt 模板
+langchain_prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are a helpful AI assistant. Answer in a friendly and concise way.",
+        ),
+        ("human", "{input}"),
+    ]
+)
+
+# 创建 Chain: template -> llm -> parser
+langchain_chain = langchain_prompt | langchain_llm | StrOutputParser()
+
 
 @app.get("/chat/ai")
 def chat_ai(msg: str, session_id: str = "default"):
@@ -181,3 +211,100 @@ def chat_ai(msg: str, session_id: str = "default"):
 def clear_history(session_id: str = "default"):
     clear_messages(session_id)
     return {"message": "对话历史已清空"}
+
+
+# ========== LangChain 接口 ==========
+@app.get("/chat/langchain")
+def chat_langchain(msg: str):
+    """
+    使用 LangChain 的简化接口（非流式）
+    演示 Chain 的基本用法
+    """
+    try:
+        # 调用 Chain（自动完成：填充模板 -> 调用 LLM -> 解析输出）
+        result = langchain_chain.invoke({"input": msg})
+        return {"success": True, "message": result, "framework": "LangChain"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/chat/langchain/stream")
+def chat_langchain_stream(msg: str):
+    """
+    使用 LangChain 的流式接口
+    演示流式输出
+    """
+    from langchain_core.callbacks import StreamingStdOutCallbackHandler
+
+    def generate():
+        try:
+            # LangChain 的流式需要特殊处理
+            # 这里我们直接用底层接口实现流式
+            for chunk in langchain_chain.stream({"input": msg}):
+                yield f"data:{chunk}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            yield f"data: [ERROR] {str(e)}\n\n"
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+my_template = ChatPromptTemplate.from_messages(
+    [("system", "你是一个{role},回答风格是{style}"), ("human", "{msg}")]
+)
+my_chain = my_template | langchain_llm | StrOutputParser()
+
+
+@app.get("/chat/myai")
+def my_ai_interface(msg: str, role: str = "ai助手", style: str = "严谨"):
+    try:
+        res = my_chain.invoke({"role": role, "msg": msg, "style": style})
+        return {"success": True, "message": res}
+    except Exception as e:
+        return {"success": False, "err": str(e)}
+
+
+memory_store = {}
+
+
+def get_memory_history(session_id: str):
+    if session_id not in memory_store:
+        memory_store[session_id] = ChatMessageHistory()
+    return memory_store[session_id]
+
+
+memory_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", "你是一个 helpful 的 AI 助手，记住用户的信息"),
+        MessagesPlaceholder(variable_name="history"),  # 历史消息插入这里
+        ("human", "{input}"),
+    ]
+)
+
+memory_chain = memory_prompt | langchain_llm | StrOutputParser()
+
+# 包装成带 Memory 的 Chain
+memory_conversation = RunnableWithMessageHistory(
+    memory_chain,
+    get_memory_history,
+    input_messages_key="input",
+    history_messages_key="history",
+)
+
+
+@app.get("/chat/memory")
+def chat_with_memory(msg: str, session_id: str = "default"):
+    try:
+        response = memory_conversation.invoke(
+            {"input": msg}, config={"configurable": {"session_id": session_id}}
+        )
+        history = get_memory_history(session_id)
+        return {
+            "success": True,
+            "msg": response,
+            "session_id": session_id,
+            "history_count": len(history.messages),
+        }
+    except Exception as e:
+        return {"success": False, "msg": str(e)}

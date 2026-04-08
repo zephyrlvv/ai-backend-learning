@@ -23,42 +23,80 @@
 ## 📅 当前进度（自动更新区）
 
 ```yaml
-当前日期: 2026-03-29
-当前周次: W1-W2
-当前天数: 第4天（结束）/ W2开始
-阶段: 阶段一已完成，进入阶段二
-主题: FastAPI + 流式输出（Streaming）
-目标: 后端服务框架，流式输出
-状态: W1 ✅ 已完成（前后端联调 + CRUD）
+当前日期: 2026-04-07
+当前周次: W3 进行中
+当前天数: W3D2（第2天）
+阶段: 阶段一（3周）进行中
+主题: LangChain Memory 组件（基础版）
+目标: 掌握 RunnableWithMessageHistory 新版 Memory 用法
+状态: W1 ✅ W2 ✅ W3D2 🔄 进行中
 W1 完成内容: 
   - ✅ Todo List CRUD 完整实现
   - ✅ 全部接口联调成功
   - ✅ Git 提交代码
-W2D2-D3 完成（今天）: 
+W2 完成内容: 
   - ✅ 接入真实 AI API（硅基流动 Qwen3-VL-32B）
   - ✅ 实现真正的 AI 流式对话
   - ✅ 添加 Memory 记忆功能（连续对话）
   - ✅ SQLite 持久化存储（重启后数据不丢失）
-  - ✅ Git 提交 W2 完整代码
+  - ✅ 修复 statiscCharts.vue 月份选择器 bug（双向12个月限制）
 W2 阶段总结: 
   - 产出：带记忆功能的 AI 聊天机器人（流式输出 + 持久化）
   - 技术栈：FastAPI StreamingResponse + EventSource + SQLite
   - 面试点：流式输出原理、SSE vs WebSocket、数据库持久化设计
-W3 计划（明天开始）: 
-  - 📝 LangChain 框架基础
-  - 📝 Prompt 模板管理
-  - 📝 Chain 链式调用
-  - 📝 LangChain Memory 组件（解决 Token 叠加问题）
-  - 📝 产出：基于 LangChain 的专业 ChatBot
-  - ⏰ 学习时间：20:00-23:00
+W3 计划（进行中）: 
+  - ✅ W3D1: LangChain 基础（Chain、PromptTemplate）
+  - 🔄 W3D2: LangChain Memory 组件（RunnableWithMessageHistory 新版用法）
+  - 📝 W3D3: 整合到 FastAPI + 前端联调
+  - ⏰ 学习时间：20:00-23:00（工作日）
 学习文档: 
   - W2D1: learning-notes/W2D1-流式输出.md
   - FAQ: learning-notes/FAQ-踩坑记录.md（环境问题、422错误、Python陷阱等）
+  - W3D1: learning-notes/W3-LangChain基础.md
+  - W3D2: langchain_demo.py（本地 Memory 练习）
+  - W3D2: main.py /chat/memory 接口（FastAPI 集成）
 GitHub 仓库: https://github.com/你的用户名/ai-backend-learning（已推送）
 环境状态: 
   - Vue 前端: http://localhost:5173（运行正常）
   - Python 后端: http://localhost:8000（运行正常）
   - 联调状态: ✅ 已打通
+W3D2 完成内容（2026-04-07）:
+  - ✅ 安装 langchain-community 依赖包
+  - ✅ 学习新版 Memory 写法（LangChain 0.2+）
+  - ✅ 理解 RunnableWithMessageHistory 核心概念
+    - 类比前端高阶组件（HOC）
+    - 参数含义：get_session_history、input_messages_key、history_messages_key
+    - 数据流向：invoke → config → get_history → Prompt → LLM
+  - ✅ 理解 StrOutputParser 作用（AIMessage → 字符串）
+  - ✅ 理解 Chain 执行方向（从左到右 | 管道流）
+  - ✅ 完成 memory_demo.py 本地测试
+  - ✅ 在 main.py 添加 /chat/memory 接口（基础 Memory 版）
+  - ⚠️ 踩坑记录：ConversationChain 和 ConversationSummaryMemory 已废弃
+    - 旧版：langchain.chains.ConversationChain
+    - 新版：langchain_core.runnables.history.RunnableWithMessageHistory
+    - 旧版 Memory：ConversationSummaryMemory（自动摘要）在新版需自行实现
+    - 新版基础 Memory：ChatMessageHistory + RunnableWithMessageHistory
+
+面试要点（W3D2）:
+  - RunnableWithMessageHistory 是 HOC 模式，给 Chain 添加记忆功能
+  - Chain 执行方向从左到右（管道流）
+  - LangChain 0.2+ 推荐 LCEL 写法（管道符 | 连接组件）
+  - 区分业务数据（invoke 第一个参数）和运行时配置（config 参数）
+
+最近谈话记录: 
+  - 2026-04-07: W3D2 LangChain Memory 学习
+    - 核心概念：RunnableWithMessageHistory、MessagesPlaceholder、ChatMessageHistory
+    - API 参数详解：get_session_history 函数签名、key 的对应关系
+    - Chain 数据流向详解
+  - 2026-04-02: 讨论女同事生日礼物（40岁，喜欢旅游/抹茶/椰子，预算150元）
+    - 推荐：白色恋人抹茶味12枚装 + DIY明信片
+    - 备选：大福、马卡龙6枚、AKOKO曲奇
+    - 避雷：毛绒玩具、香水、与父亲相关物品
+  - 2026-04-02: 修复 Vue2 statiscCharts.vue 月份选择器 bug
+    - 问题：选择后禁用逻辑错误、清空后未重置
+    - 解决：使用 calendar-change + visible-change 事件，锚点日期双向限制±12个月
+  - 2026-04-02: Python 生成器表达式 sum() 立即计算原理讲解
+  - 2026-04-02: try/except 异常处理、Python 逻辑运算符（and/or/not）讲解
 ```
 
 ---
