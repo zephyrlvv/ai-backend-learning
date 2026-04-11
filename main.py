@@ -7,6 +7,9 @@ from typing import Any, List, Optional
 from dotenv import load_dotenv
 import os
 
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+
 # 加载 .env 文件
 load_dotenv()
 # 读取环境变量
@@ -127,38 +130,6 @@ def delete_todo(todo_id: int):
     raise HTTPException(status_code=404, detail="待办事项不存在")
 
 
-@app.get("/stream")
-def stream():
-    def generate():
-        text = "这是流式输出效果"
-        for char in text:
-            yield f"data:{char}\n\n"  # SSE 格式要求
-            time.sleep(0.05)  # 每个字延迟 50ms
-
-    return StreamingResponse(generate(), media_type="text/event-stream")
-
-
-@app.get("/chat/stream")
-def chat_stream(msg: str):
-    """模拟ai回复"""
-
-    def generate():
-        responses = [
-            f"收到你的消息：{msg}。这是一个很有意思的问题！",
-            f"关于「{msg}」，我的看法是这样的...",
-            f"你提到了{msg}，让我深入思考一下...",
-        ]
-        response = random.choice(responses)
-
-        # 逐字返回
-        for char in response:
-            yield f"data:{char}\n\n"
-            time.sleep(0.03)
-        yield "data:[DONE]\n\n"
-
-    return StreamingResponse(generate(), media_type="text/event-stream")
-
-
 # 硅基流动配置
 client = OpenAI(
     api_key=API_KEY,  # 从硅基流动控制台复制
@@ -174,116 +145,50 @@ langchain_llm = ChatOpenAI(
     temperature=0.7,
 )
 
-# 定义 Prompt 模板
-langchain_prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            "You are a helpful AI assistant. Answer in a friendly and concise way.",
-        ),
-        ("human", "{input}"),
-    ]
-)
-
-# 创建 Chain: template -> llm -> parser
-langchain_chain = langchain_prompt | langchain_llm | StrOutputParser()
-
-
-@app.get("/chat/ai")
-def chat_ai(msg: str, session_id: str = "default"):
-    # 保存用户对话记录
-    add_message("user", msg, session_id)
-
-    def generate() -> Iterator[str]:
-        try:
-            history = get_messages(session_id, limit=20)
-            # print('message---------',history)
-            res = client.chat.completions.create(
-                model="Qwen/Qwen3-VL-32B-Instruct",
-                messages=history,
-                stream=True,
-                max_tokens=2048,
-            )
-            assistant_reply = ""
-            for chunk in res:
-                if chunk.choices[0].delta and chunk.choices[0].delta.content:
-                    text = chunk.choices[0].delta.content
-                    assistant_reply += text
-                    yield f"data:{text}\n\n"
-                    add_message("assistant", assistant_reply, session_id)
-            yield "data: [DONE]\n\n"
-        except Exception as e:
-            yield f"data: [ERROR] {str(e)}\n\n"
-            yield "data: [DONE]\n\n"
-
-    return StreamingResponse(generate(), media_type="text/event-stream")
-
-
-@app.post("/chat/clear")
-def clear_history(session_id: str = "default"):
-    clear_messages(session_id)
-    return {"message": "对话历史已清空"}
-
-
-# ========== LangChain 接口 ==========
-@app.get("/chat/langchain")
-def chat_langchain(msg: str):
-    """
-    使用 LangChain 的简化接口（非流式）
-    演示 Chain 的基本用法
-    """
-    try:
-        # 调用 Chain（自动完成：填充模板 -> 调用 LLM -> 解析输出）
-        result = langchain_chain.invoke({"input": msg})
-        return {"success": True, "message": result, "framework": "LangChain"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-@app.get("/chat/langchain/stream")
-def chat_langchain_stream(msg: str):
-    """
-    使用 LangChain 的流式接口
-    演示流式输出
-    """
-    from langchain_core.callbacks import StreamingStdOutCallbackHandler
-
-    def generate():
-        try:
-            # LangChain 的流式需要特殊处理
-            # 这里我们直接用底层接口实现流式
-            for chunk in langchain_chain.stream({"input": msg}):
-                yield f"data:{chunk}\n\n"
-            yield "data: [DONE]\n\n"
-        except Exception as e:
-            yield f"data: [ERROR] {str(e)}\n\n"
-            yield "data: [DONE]\n\n"
-
-    return StreamingResponse(generate(), media_type="text/event-stream")
-
-
-my_template = ChatPromptTemplate.from_messages(
-    [("system", "你是一个{role},回答风格是{style}"), ("human", "{msg}")]
-)
-my_chain = my_template | langchain_llm | StrOutputParser()
-
-
-@app.get("/chat/myai")
-def my_ai_interface(msg: str, role: str = "ai助手", style: str = "严谨"):
-    try:
-        res = my_chain.invoke({"role": role, "msg": msg, "style": style})
-        return {"success": True, "message": res}
-    except Exception as e:
-        return {"success": False, "err": str(e)}
-
-
 memory_store = {}
 
 
+class PersistentChatMessageHistory(BaseChatMessageHistory):
+    """
+    自定义持久化聊天历史
+    - 继承 BaseChatMessageHistory 接口
+    - 使用 SQLite 存储（W2 的 database.py）
+    """
+
+    def __init__(self, session_id: str):
+        self.session_id = session_id
+
+    @property
+    def messages(self):
+        """读取历史消息（从数据库）"""
+        rows = get_messages(self.session_id, limit=50)
+
+        # 转换成 LangChain 的 Message 对象
+        messages = []
+        for row in rows:
+            if row["role"] == "user":
+                messages.append(HumanMessage(content=row["content"]))
+            elif row["role"] == "assistant":
+                messages.append(AIMessage(content=row["content"]))
+        return messages
+
+    def add_message(self, message):
+        """添加消息（保存到数据库）"""
+        if isinstance(message, HumanMessage):
+            role = "user"
+        elif isinstance(message, AIMessage):
+            role = "assistant"
+        else:
+            role = "unknown"
+        add_message(role, message.content, self.session_id)
+
+    def clear(self):
+        """清空历史"""
+        clear_messages(self.session_id)
+
+
 def get_memory_history(session_id: str):
-    if session_id not in memory_store:
-        memory_store[session_id] = ChatMessageHistory()
-    return memory_store[session_id]
+    return PersistentChatMessageHistory(session_id)
 
 
 memory_prompt = ChatPromptTemplate.from_messages(
@@ -307,6 +212,7 @@ memory_conversation = RunnableWithMessageHistory(
 
 @app.get("/chat/memory")
 def chat_with_memory(msg: str, session_id: str = "default"):
+    """非流式 Memory 接口"""
     try:
         response = memory_conversation.invoke(
             {"input": msg}, config={"configurable": {"session_id": session_id}}
@@ -320,3 +226,18 @@ def chat_with_memory(msg: str, session_id: str = "default"):
         }
     except Exception as e:
         return {"success": False, "msg": str(e)}
+
+
+@app.get("/chat/memory/stream")
+def chat_with_memory_stream(msg: str, session_id: str = "default"):
+    def generate():
+        try:
+            for chunk in memory_conversation.stream(
+                {"input": msg}, config={"configurable": {"session_id": session_id}}
+            ):
+                yield f"data:{chunk}\n\n"
+            yield f"data:[done]\n\n"
+        except Exception as e:
+            yield f"errorInfo {e}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
